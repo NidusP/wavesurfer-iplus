@@ -77,16 +77,13 @@ class MyWaveSurfer {
             })
             this.addRegions(true)
 
-            //  在 ready 事件 缓存一下 AudioBuffer，拿到左右声道的数据
             // 加载完毕 缓存声道数据,用于左右声道切换
             this.bufferAudio = myWave && myWave.backend && myWave.backend.buffer
-            if(this.bufferAudio.numberOfChannels === 2){
-                this.nullArray = new Float32Array(this.bufferAudio.length)
-                this.leftAudioArray = new Float32Array(this.bufferAudio.length)
-                this.rightAudioArray = new Float32Array(this.bufferAudio.length)
-                this.bufferAudio.copyFromChannel(this.leftAudioArray,0,0)
-                this.bufferAudio.copyFromChannel(this.rightAudioArray,1,0)
-            }
+            this.nullArray = new Float32Array(this.bufferAudio.length)
+            this.leftAudioArray = new Float32Array(this.bufferAudio.length)
+            this.rightAudioArray = new Float32Array(this.bufferAudio.length)
+            this.bufferAudio.copyFromChannel(this.leftAudioArray,0,0)
+            this.bufferAudio.copyFromChannel(this.rightAudioArray,1,0)
         })
         myWave.on('region-click', (region, event) => {
             // console.log('region-click')
@@ -180,7 +177,6 @@ class MyWaveSurfer {
             plugins: [ regionsPlugin ]
         })
         waveSurfer.load(dualTrack)
-        // waveSurfer.load(ALALAMO)
         return waveSurfer
     }
     addRegions(boolean){
