@@ -79,11 +79,13 @@ class MyWaveSurfer {
 
             // 加载完毕 缓存声道数据,用于左右声道切换
             this.bufferAudio = myWave && myWave.backend && myWave.backend.buffer
-            this.nullArray = new Float32Array(this.bufferAudio.length)
-            this.leftAudioArray = new Float32Array(this.bufferAudio.length)
-            this.rightAudioArray = new Float32Array(this.bufferAudio.length)
-            this.bufferAudio.copyFromChannel(this.leftAudioArray,0,0)
-            this.bufferAudio.copyFromChannel(this.rightAudioArray,1,0)
+            if (this.bufferAudio.numberOfChannels === 2){
+                this.nullArray = new Float32Array(this.bufferAudio.length)
+                this.leftAudioArray = new Float32Array(this.bufferAudio.length)
+                this.rightAudioArray = new Float32Array(this.bufferAudio.length)
+                this.bufferAudio.copyFromChannel(this.leftAudioArray,0,0)
+                this.bufferAudio.copyFromChannel(this.rightAudioArray,1,0)
+            }
         })
         myWave.on('region-click', (region, event) => {
             // console.log('region-click')
