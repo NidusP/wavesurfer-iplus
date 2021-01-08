@@ -4,7 +4,6 @@ import { getLocalRegions, saveLocalRegions } from "../utils/localStorage";
 import dualTrack from "../../public/voice/03403.wav"
 import ALALAMO from "../../public/voice/ALALAMO.mp3"
 
-
 class MyWaveSurfer {
     constructor(){
         this.waveSurfer = null
@@ -15,11 +14,12 @@ class MyWaveSurfer {
         this.init()
     }
     init(){
-        const { $waveForm, $waveButton, $wave } = this.createTemplate();
+        const { $waveForm, $waveButton, $wave, $wavePlayRadio } = this.createTemplate();
         this.waveSurfer = this.initWaveSurfer($waveForm)
         if (!this.waveSurfer) return false;
         const myWave = this.waveSurfer
 
+        // DOM 事件处理
         $waveButton.addEventListener('click', function () {
             myWave && myWave.isPlaying() ?  myWave.pause() : myWave.play()
         })
@@ -40,7 +40,28 @@ class MyWaveSurfer {
         // $waveForm.addEventListener("click", function (event) {
         //     console.log('click-$waveForm')
         // })
+        $wavePlayRadio.addEventListener('click', (event) => {
+            // 加载未完成弹出事件
+            if(!this.bufferAudio) {
+                event.stopPropagation()
+                event.preventDefault()
+                return false
+            }
+            const $target = event.target
+            if ($target.nodeName.toUpperCase() !== 'INPUT') return false
+            if ($target.value === 'both') {
+                this.bufferAudio.copyToChannel(this.leftAudioArray,0,0)
+                this.bufferAudio.copyToChannel(this.rightAudioArray,1,0)
+            } else if ($target.value === 'left') {
+                this.bufferAudio.copyToChannel(this.leftAudioArray,0,0)
+                this.bufferAudio.copyToChannel(this.nullArray,1,0)
+            } else if ($target.value === 'right') {
+                this.bufferAudio.copyToChannel(this.nullArray,0,0)
+                this.bufferAudio.copyToChannel(this.rightAudioArray,1,0)
+            }
+        })
 
+        // wave 事件处理
         myWave.on('ready', () => {
             // console.log('ready', getLocalRegions())
             const localRegions = getLocalRegions() || []
@@ -55,6 +76,17 @@ class MyWaveSurfer {
                 })
             })
             this.addRegions(true)
+
+            //  在 ready 事件 缓存一下 AudioBuffer，拿到左右声道的数据
+            // 加载完毕 缓存声道数据,用于左右声道切换
+            this.bufferAudio = myWave && myWave.backend && myWave.backend.buffer
+            if(this.bufferAudio.numberOfChannels === 2){
+                this.nullArray = new Float32Array(this.bufferAudio.length)
+                this.leftAudioArray = new Float32Array(this.bufferAudio.length)
+                this.rightAudioArray = new Float32Array(this.bufferAudio.length)
+                this.bufferAudio.copyFromChannel(this.leftAudioArray,0,0)
+                this.bufferAudio.copyFromChannel(this.rightAudioArray,1,0)
+            }
         })
         myWave.on('region-click', (region, event) => {
             // console.log('region-click')
@@ -136,18 +168,19 @@ class MyWaveSurfer {
             // xhr:{ cache: 'default', mode: 'cors', method: 'GET', credentials: 'same-origin', redirect: 'follow', referrer: 'client'},
             // 双声道显示
             splitChannels: true,
-            // splitChannelsOptions: {
-            //     overlay: false,
-            //     relativeNormalization: true,
-            //     filterChannels: [],
-            //     channelColors: {
-            //         0: { progressColor: 'green', waveColor: 'pink' },
-            //         1: { progressColor: 'orange', waveColor: 'purple' }
-            //     }
-            // },
+            splitChannelsOptions: {
+                overlay: false,
+                relativeNormalization: true,
+                filterChannels: [],
+                // channelColors: {
+                //     0: { progressColor: 'green', waveColor: 'pink' },
+                //     1: { progressColor: 'orange', waveColor: 'purple' }
+                // }
+            },
             plugins: [ regionsPlugin ]
         })
-        waveSurfer.load(ALALAMO)
+        waveSurfer.load(dualTrack)
+        // waveSurfer.load(ALALAMO)
         return waveSurfer
     }
     addRegions(boolean){
@@ -162,7 +195,9 @@ class MyWaveSurfer {
     }
     createTemplate(){
         const $wave = document.createElement('div'), $waveForm = document.createElement('div'),
-            $waveButton = document.createElement('button'), $waveButtonNext = document.createElement('button')
+            $waveButton = document.createElement('button'), $waveButtonNext = document.createElement('button'),
+            $wavePlayRadio = document.createElement('div')
+
         $wave.className = 'wavesurfer-container'
         $waveForm.className = 'waveform'
         $waveForm.tabIndex = 0
@@ -173,15 +208,25 @@ class MyWaveSurfer {
         $waveButtonNext.innerHTML = 'next'
         $waveButtonNext.className = 'wave-button-next'
 
+        $wavePlayRadio.className = 'wave-button-play'
+        $wavePlayRadio.innerHTML = `
+            <input type="radio" name="play" value="left">Left
+            <input type="radio" name="play" value="right">Right
+            <input type="radio" name="play" value="both" checked>Both
+        `
+
+
         $wave.appendChild($waveForm)
         $wave.appendChild($waveButton)
+        $wave.appendChild($wavePlayRadio)
         // $wave.appendChild($waveButtonNext)
         document.body.appendChild($wave)
         return {
             $wave,
             $waveButton,
             $waveForm,
-            $waveButtonNext
+            $waveButtonNext,
+            $wavePlayRadio
         }
     }
 }
